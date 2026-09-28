@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Journal - KLIS Primary</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- React & Babel CDNs -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        klis: {
+                            blue: '#1E3A8A',
+                            lightBlue: '#3B82F6',
+                            sky: '#EFF6FF',
+                            gold: '#D97706',
+                            yellow: '#EAB308',
+                            accent: '#FEF08A'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #F8FAFC; }
+        .custom-scrollbar::-webkit-scrollbar { height: 8px; width: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .print-only { display: none; }
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            body { background-color: white; color: black; }
+            .report-card-container { box-shadow: none !important; border: 2px solid #1E3A8A !important; margin: 0 !important; width: 100% !important; max-width: 100% !important; padding: 1.5rem !important; }
+            @page { size: A4 portrait; margin: 10mm; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const G3_STUDENTS = [
+            "Aaira Haiqa Faaris",
+            "ABIZARD DEUMAR CARENSA",
+            "Ainayya Hayyaandra Handoko",
+            "Aldamar Hamizan Pranidhana",
+            "Almahyra Uzma Angsori",
+            "Alsava Khaira Ramadhan",
+            "Arvee Athafariz Devara",
+            "Ayradhisa Adzkiya Antalya",
+            "Azlan Athafariz Kusuma",
+            "Bryan Immanuel Aji",
+            "Elena Zetira Ruby",
+            "Heiswacetta Khairalamira Aswad",
+            "Muhammad Attar Wibisana",
+            "Muhammad Syafiq Ubaid",
+            "Narrel Nataputra Suksmo Refranto",
+            "Nazneena Ainaya Rahman",
+            "Ratu Aiza Khairani",
+            "Safin Athalla Bahtiar",
+            "Sanaya Alma Azkaenza",
+            "SHAQUEENA AZZAHRA SUMARTONO",
+            "Shaviara Dear Sahar"
+        ];
+
+        const G5_STUDENTS = [
+            "Ahmad Fatih",
+            "Arsya Azzaydan Rayyan",
+            "Ayuni Syakirah Khaerunnisa",
+            "Hamizan Gian Ronaldy",
+            "Jabraan Safaraz Ondri",
+            "Kaelynn Malika Putri Suksmo Refranto",
+            "Khadijah Falihah Shatara",
+            "Muhammad Keenan Al Abqori",
+            "Muhsin Altundere",
+            "Naisha Ghania Azahra",
+            "Renata Zivanna Prasetya",
+            "Restu Pratama Mirzal"
+        ];
+
+        const SUBJECTS = [
+            { id: "is3", name: "Islamic Studies G3", grade: "G3" },
+            { id: "ar3", name: "Arabic Language G3", grade: "G3" },
+            { id: "is5", name: "Islamic Studies G5", grade: "G5" },
+            { id: "ar5", name: "Arabic Language G5", grade: "G5" }
+        ];
+
+        // Default initial dates for meetings
+        const INITIAL_MEETINGS = [
+            { id: 1, name: "Meeting 1", date: "2026-08-04", topic: "Introduction & Basic Concepts", lo: "Understand core definitions and objectives." },
+            { id: 2, name: "Meeting 2", date: "2026-08-11", topic: "Foundational Principles", lo: "Apply essential vocabulary in daily practice." },
+            { id: 3, name: "Meeting 3", date: "2026-08-18", topic: "Practical Application", lo: "Demonstrate comprehension through oral drills." },
+            { id: 4, name: "Meeting 4", date: "2026-08-25", topic: "Review & Ethics", lo: "Synthesize key moral lessons and applications." }
+        ];
+
+        function App() {
+            const [selectedSubject, setSelectedSubject] = React.useState("is3");
+            const [activeTab, setActiveTab] = React.useState("attendance"); // attendance, assessment, report, sessions
+            const [selectedStudentForReport, setSelectedStudentForReport] = React.useState(G3_STUDENTS[0]);
+
+            // Meetings state per subject
+            const [subjectMeetings, setSubjectMeetings] = React.useState({
+                is3: [...INITIAL_MEETINGS],
+                ar3: [...INITIAL_MEETINGS],
+                is5: [...INITIAL_MEETINGS],
+                ar5: [...INITIAL_MEETINGS]
+            });
+
+            // Attendance Data structure: { [subjectId]: { [studentName]: { [meetingId]: "P" | "A" | "L" | "S" } } }
+            const [attendanceData, setAttendanceData] = React.useState(() => {
+                const init = {};
+                SUBJECTS.forEach(sub => {
+                    init[sub.id] = {};
+                    const students = sub.grade === "G3" ? G3_STUDENTS : G5_STUDENTS;
+                    students.forEach(st => {
+                        init[sub.id][st] = { 1: "P", 2: "P", 3: "P", 4: "P" };
+                    });
+                });
+                return init;
+            });
+
+            // Assessments Data structure: { [subjectId]: { [studentName]: { quiz: 85, formative: 90, oral: 88, written: 82, practical: 92 } } }
+            const [assessmentData, setAssessmentData] = React.useState(() => {
+                const init = {};
+                SUBJECTS.forEach(sub => {
+                    init[sub.id] = {};
+                    const students = sub.grade === "G3" ? G3_STUDENTS : G5_STUDENTS;
+                    students.forEach((st, idx) => {
+                        // Generate realistic default scores for preview
+                        const baseScore = 78 + ((idx * 3) % 18);
+                        init[sub.id][st] = {
+                            quiz: Math.min(100, baseScore + 4),
+                            formative: Math.min(100, baseScore + 2),
+                            oral: Math.min(100, baseScore + 5),
+                            written: Math.min(100, baseScore - 2),
+                            practical: Math.min(100, baseScore + 6)
+                        };
+                    });
+                });
+                return init;
+            });
+
+            // Student Comments for Report Card: { [studentName]: commentString }
+            const [studentComments, setStudentComments] = React.useState({
+                "Aaira Haiqa Faaris": "Aaira shows outstanding enthusiasm in Islamic Studies and Arabic. She actively participates and demonstrates commendable effort.",
+                "ABIZARD DEUMAR CARENSA": "Abizard displays great progress in understanding core principles and retains vocabulary well during oral practice.",
+                "Ahmad Fatih": "Ahmad excels in Arabic reading and demonstrates strong comprehension in Grade 5 Islamic Studies tasks."
+            });
+
+            // Behavioral and Attitude Observations state per student
+            const [attitudeData, setAttitudeData] = React.useState(() => {
+                const init = {};
+                [...G3_STUDENTS, ...G5_STUDENTS].forEach(st => {
+                    init[st] = {
+                        adab: "Exemplary",
+                        participation: "Active & Enthusiastic",
+                        discipline: "Consistently On Time",
+                        collaboration: "Helpful & Cooperative",
+                        attitudeNotes: "Demonstrates excellent manners, shows respect to teachers and classmates, and consistently demonstrates positive effort."
+                    };
+                });
+                return init;
+            });
+
+            // Topic mastery scores per subject & student
+            const [topicScores, setTopicScores] = React.useState(() => {
+                const init = {};
+                SUBJECTS.forEach(sub => {
+                    init[sub.id] = {};
+                    const students = sub.grade === "G3" ? G3_STUDENTS : G5_STUDENTS;
+                    students.forEach((st, idx) => {
+                        init[sub.id][st] = {
+                            1: Math.min(100, 82 + (idx * 2) % 15),
+                            2: Math.min(100, 85 + (idx * 3) % 12),
+                            3: Math.min(100, 80 + (idx * 4) % 18),
+                            4: Math.min(100, 88 + (idx * 2) % 10)
+                        };
+                    });
+                });
+                return init;
+            });
+
+            const handleAttitudeChange = (student, field, val) => {
+                setAttitudeData(prev => ({
+                    ...prev,
+                    [student]: {
+                        ...prev[student],
+                        [field]: val
+                    }
+                }));
+            };
+
+            const handleTopicScoreChange = (subjectId, student, meetingId, val) => {
+                const numVal = Math.min(100, Math.max(0, Number(val) || 0));
+                setTopicScores(prev => ({
+                    ...prev,
+                    [subjectId]: {
+                        ...(prev[subjectId] || {}),
+                        [student]: {
+                            ...(prev[subjectId]?.[student] || {}),
+                            [meetingId]: numVal
+                        }
+                    }
+                }));
+            };
+
+            // Helper to get active grade students
+            const activeSubjectObj = SUBJECTS.find(s => s.id === selectedSubject);
+            const currentGrade = activeSubjectObj ? activeSubjectObj.grade : "G3";
+            const currentStudents = currentGrade === "G3" ? G3_STUDENTS : G5_STUDENTS;
+
+            // Handle Attendance change
+            const handleAttendanceChange = (student, meetingId, value) => {
+                setAttendanceData(prev => ({
+                    ...prev,
+                    [selectedSubject]: {
+                        ...prev[selectedSubject],
+                        [student]: {
+                            ...prev[selectedSubject]?.[student],
+                            [meetingId]: value
+                        }
+                    }
+                }));
+            };
+
+            // Handle Assessment change
+            const handleAssessmentChange = (student, field, value) => {
+                const numVal = Math.min(100, Math.max(0, Number(value) || 0));
+                setAssessmentData(prev => ({
+                    ...prev,
+                    [selectedSubject]: {
+                        ...prev[selectedSubject],
+                        [student]: {
+                            ...prev[selectedSubject]?.[student],
+                            [field]: numVal
+                        }
+                    }
+                }));
+            };
+
+            // Handle adding new meeting
+            const handleAddMeeting = () => {
+                const currentList = subjectMeetings[selectedSubject] || [];
+                const nextId = currentList.length + 1;
+                const today = new Date().toISOString().split('T')[0];
+                const newMeeting = {
+                    id: nextId,
+                    name: `Meeting ${nextId}`,
+                    date: today,
+                    topic: `Topic for Meeting ${nextId}`,
+                    lo: `Learning Objective for Meeting ${nextId}`
+                };
+
+                setSubjectMeetings(prev => ({
+                    ...prev,
+                    [selectedSubject]: [...currentList, newMeeting]
+                }));
+
+                // Default attendance for new meeting to Present
+                setAttendanceData(prev => {
+                    const subAtt = { ...(prev[selectedSubject] || {}) };
+                    currentStudents.forEach(st => {
+                        if (!subAtt[st]) subAtt[st] = {};
+                        subAtt[st][nextId] = "P";
+                    });
+                    return { ...prev, [selectedSubject]: subAtt };
+                });
+            };
+
+            // Update Meeting date or info
+            const handleUpdateMeeting = (mId, key, val) => {
+                setSubjectMeetings(prev => ({
+                    ...prev,
+                    [selectedSubject]: prev[selectedSubject].map(m => m.id === mId ? { ...m, [key]: val } : m)
+                }));
+            };
+
+            const calculateAttendanceStats = (studentName, subjectId) => {
+                const meetings = subjectMeetings[subjectId] || [];
+                if (meetings.length === 0) return { percent: 100, presentCount: 0, total: 0 };
+                const studentAtt = attendanceData[subjectId]?.[studentName] || {};
+                
+                let presentCount = 0;
+                meetings.forEach(m => {
+                    const status = studentAtt[m.id];
+                    if (status === "P" || status === "L") {
+                        presentCount += (status === "P" ? 1 : 0.8); // 80% for late
+                    }
+                });
+
+                const percent = Math.round((presentCount / meetings.length) * 100);
+                return { percent, presentCount: Math.round(presentCount), total: meetings.length };
+            };
+
+            const calculateAverageScore = (studentName, subjectId) => {
+                const scores = assessmentData[subjectId]?.[studentName];
+                if (!scores) return 0;
+                const { quiz, formative, oral, written, practical } = scores;
+                const total = (quiz || 0) + (formative || 0) + (oral || 0) + (written || 0) + (practical || 0);
+                return Math.round((total / 5) * 10) / 10;
+            };
+
+            // Synchronize report student selection when grade changes
+            React.useEffect(() => {
+                if (!currentStudents.includes(selectedStudentForReport)) {
+                    setSelectedStudentForReport(currentStudents[0]);
+                }
+            }, [selectedSubject]);
+
+            return (
+                <div class="min-h-screen flex flex-col">
+                    {}
+                    <header class="bg-white border-b-4 border-klis-blue shadow-sm sticky top-0 z-30 no-print">
+                        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                            
+                            {/* Logo & School Title */}
+                            <div class="flex items-center space-x-4">
+                                <div class="relative flex-shrink-0">
+                                    {/* KLIS Emblem Styling */}
+                                    <div class="w-16 h-16 bg-klis-blue border-2 border-klis-gold rounded-xl shadow-md flex flex-col items-center justify-center p-1 text-white text-center relative overflow-hidden">
+                                        <div class="absolute -top-1 -right-1 w-6 h-6 bg-klis-yellow rounded-full opacity-20"></div>
+                                        <i class="fa-solid fa-graduation-cap text-klis-yellow text-xl mb-0.5"></i>
+                                        <span class="font-extrabold text-xs tracking-wider text-yellow-400">KLIS</span>
+                                        <span class="text-[8px] tracking-tighter text-blue-100 font-semibold uppercase">PRIMARY</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="bg-klis-yellow/20 text-klis-gold text-xs font-bold px-2 py-0.5 rounded-full border border-klis-yellow">Official Journal</span>
+                                        <span class="text-xs font-medium text-slate-500">Academic Year 2026/2027</span>
+                                    </div>
+                                    <h1 class="text-xl sm:text-2xl font-black text-klis-blue tracking-tight">
+                                        Knowledge Link Intercultural School Primary
+                                    </h1>
+                                </div>
+                            </div>
+
+                            {/* Teacher Profile Card */}
+                            <div class="flex items-center space-x-3 bg-blue-50/80 border border-blue-200 rounded-xl p-2.5 px-4">
+                                <div class="w-10 h-10 rounded-full bg-klis-blue text-white flex items-center justify-center font-bold text-lg border-2 border-klis-gold">
+                                    DR
+                                </div>
+                                <div>
+                                    <p class="text-xs text-blue-600 font-bold uppercase tracking-wider">Subject Teacher</p>
+                                    <p class="text-sm font-bold text-slate-900">Mr. Deni Ramli Fauzi, S.H.I</p>
+                                </div>
+                            </div>
+
+                        </div>
+                    </header>
+
+                    {/* Main Content Area */}
+                    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col gap-6">
+                        
+                        {}
+                        <div class="no-print bg-white rounded-2xl p-3 shadow-sm border border-slate-200">
+                            <div class="flex items-center justify-between mb-2 px-1">
+                                <label class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-book-bookmark text-klis-gold"></i> Select Class Subject
+                                </label>
+                                <span class="text-xs text-slate-400 font-medium">Scroll to view all 4 subjects &rarr;</span>
+                            </div>
+                            
+                            {/* Horizontal Scrolling Subject Pills */}
+                            <div class="flex items-center gap-3 overflow-x-auto custom-scrollbar pb-2 pt-1 px-1">
+                                {SUBJECTS.map((sub) => {
+                                    const isSelected = selectedSubject === sub.id;
+                                    return (
+                                        <button
+                                            key={sub.id}
+                                            onClick={() => setSelectedSubject(sub.id)}
+                                            class={`flex-shrink-0 px-5 py-3 rounded-xl font-bold text-sm transition-all duration-200 flex items-center gap-3 border ${
+                                                isSelected 
+                                                    ? 'bg-klis-blue text-white border-klis-blue shadow-md ring-2 ring-klis-yellow/50 scale-[1.02]' 
+                                                    : 'bg-white text-slate-700 border-slate-200 hover:border-klis-blue hover:bg-slate-50'
+                                            }`}
+                                        >
+                                            <div class={`w-8 h-8 rounded-lg flex items-center justify-center text-xs ${
+                                                isSelected ? 'bg-klis-yellow text-slate-900' : 'bg-slate-100 text-slate-600'
+                                            }`}>
+                                                {sub.grade}
+                                            </div>
+                                            <div class="text-left">
+                                                <p class="font-bold whitespace-nowrap">{sub.name}</p>
+                                                <p class={`text-[10px] ${isSelected ? 'text-blue-200' : 'text-slate-400'}`}>
+                                                    {sub.grade === "G3" ? "21 Registered Students" : "12 Registered Students"}
+                                                </p>
+                                            </div>
+                                            {isSelected && (
+                                                <i class="fa-solid fa-circle-check text-klis-yellow text-sm ml-1"></i>
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {}
+                        <div class="no-print bg-slate-200/80 p-1.5 rounded-xl flex flex-wrap gap-1 border border-slate-300">
+                            <button
+                                onClick={() => setActiveTab("attendance")}
+                                class={`flex-1 min-w-[140px] py-2.5 px-4 rounded-lg font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all ${
+                                    activeTab === "attendance" 
+                                        ? 'bg-white text-klis-blue shadow-sm border border-slate-200' 
+                                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/50'
+                                }`}
+                            >
+                                <i class="fa-solid fa-calendar-check text-klis-gold"></i>
+                                4. Student Attendance
+                            </button>
+
+                            <button
+                                onClick={() => setActiveTab("sessions")}
+                                class={`flex-1 min-w-[140px] py-2.5 px-4 rounded-lg font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all ${
+                                    activeTab === "sessions" 
+                                        ? 'bg-white text-klis-blue shadow-sm border border-slate-200' 
+                                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/50'
+                                }`}
+                            >
+                                <i class="fa-solid fa-chalkboard-user text-klis-gold"></i>
+                                6. Topics & LO
+                            </button>
+
+                            <button
+                                onClick={() => setActiveTab("assessment")}
+                                class={`flex-1 min-w-[140px] py-2.5 px-4 rounded-lg font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all ${
+                                    activeTab === "assessment" 
+                                        ? 'bg-white text-klis-blue shadow-sm border border-slate-200' 
+                                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/50'
+                                }`}
+                            >
+                                <i class="fa-solid fa-[#EAB308] fa-list-check text-klis-gold"></i>
+                                7. Daily Assessment
+                            </button>
+
+                            <button
+                                onClick={() => setActiveTab("report")}
+                                class={`flex-1 min-w-[140px] py-2.5 px-4 rounded-lg font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all ${
+                                    activeTab === "report" 
+                                        ? 'bg-white text-klis-blue shadow-sm border border-slate-200' 
+                                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/50'
+                                }`}
+                            >
+                                <i class="fa-solid fa-id-card text-klis-gold"></i>
+                                8. Individual Student Report
+                            </button>
+                        </div>
+
+                        {/* =========================================================
+                            TAB 1: ATTENDANCE TRACKER
+                           ========================================================= */}
+                        {}
+                        {activeTab === "attendance" && (
+                            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                                <div class="bg-blue-50/60 p-4 border-b border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                                    <div>
+                                        <h2 class="text-lg font-bold text-klis-blue flex items-center gap-2">
+                                            <i class="fa-solid fa-users-rectangle text-klis-gold"></i>
+                                            Students Attendance ({currentGrade}) - {activeSubjectObj?.name}
+                                        </h2>
+                                        <p class="text-xs text-slate-500 mt-0.5">
+                                            Meetings arranged horizontally. Dates can be selected directly from the calendar. Final column shows presentation percentage.
+                                        </p>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <button 
+                                            onClick={handleAddMeeting}
+                                            class="bg-klis-blue hover:bg-blue-800 text-white font-bold text-xs px-3.5 py-2 rounded-lg shadow transition flex items-center gap-1.5"
+                                        >
+                                            <i class="fa-solid fa-plus text-klis-yellow"></i>
+                                            Add Meeting
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Legend Banner */}
+                                <div class="px-4 py-2 bg-slate-100/80 border-b border-slate-200 text-xs flex flex-wrap items-center gap-4 text-slate-600">
+                                    <span class="font-bold">Legend:</span>
+                                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span> P = Present</span>
+                                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span> A = Absent</span>
+                                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block"></span> L = Late</span>
+                                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-sky-500 inline-block"></span> S = Sick</span>
+                                </div>
+
+                                {/* Attendance Table */}
+                                <div class="overflow-x-auto custom-scrollbar">
+                                    <table class="w-full text-left text-xs border-collapse">
+                                        <thead>
+                                            <tr class="bg-slate-100 text-slate-700 border-b border-slate-200">
+                                                <th class="p-3 font-bold uppercase sticky left-0 bg-slate-100 z-10 w-12 text-center border-r border-slate-200">#</th>
+                                                <th class="p-3 font-bold uppercase sticky left-12 bg-slate-100 z-10 min-w-[220px] border-r border-slate-200">Student Name</th>
+                                                
+                                                {/* Dynamic Meeting Columns */}
+                                                {(subjectMeetings[selectedSubject] || []).map((m) => (
+                                                    <th key={m.id} class="p-2 min-w-[130px] border-r border-slate-200 text-center bg-blue-50/30">
+                                                        <div class="font-bold text-klis-blue text-sm mb-1">{m.name}</div>
+                                                        <input 
+                                                            type="date"
+                                                            value={m.date}
+                                                            onChange={(e) => handleUpdateMeeting(m.id, 'date', e.target.value)}
+                                                            class="text-[11px] bg-white border border-slate-300 rounded px-1.5 py-0.5 text-slate-700 focus:outline-none focus:border-klis-blue w-full text-center"
+                                                        />
+                                                    </th>
+                                                ))}
+
+                                                {/* Presentation Percentage Column */}
+                                                <th class="p-3 font-bold uppercase bg-yellow-50 text-klis-gold min-w-[130px] text-center border-l border-slate-300">
+                                                    Attendance Rate (%)
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-slate-200">
+                                            {currentStudents.map((student, idx) => {
+                                                const stats = calculateAttendanceStats(student, selectedSubject);
+                                                return (
+                                                    <tr key={student} class="hover:bg-blue-50/30 transition">
+                                                        <td class="p-3 font-medium text-slate-500 text-center sticky left-0 bg-white z-10 border-r border-slate-200">
+                                                            {idx + 1}
+                                                        </td>
+                                                        <td class="p-3 font-bold text-slate-800 sticky left-12 bg-white z-10 border-r border-slate-200 whitespace-nowrap">
+                                                            {student}
+                                                        </td>
+
+                                                        {/* Status Selectors per Meeting */}
+                                                        {(subjectMeetings[selectedSubject] || []).map((m) => {
+                                                            const currentVal = attendanceData[selectedSubject]?.[student]?.[m.id] || "P";
+                                                            let bgStyle = "bg-emerald-50 text-emerald-700 border-emerald-300";
+                                                            if (currentVal === "A") bgStyle = "bg-rose-50 text-rose-700 border-rose-300";
+                                                            if (currentVal === "L") bgStyle = "bg-amber-50 text-amber-700 border-amber-300";
+                                                            if (currentVal === "S") bgStyle = "bg-sky-50 text-sky-700 border-sky-300";
+
+                                                            return (
+                                                                <td key={m.id} class="p-2 border-r border-slate-200 text-center">
+                                                                    <select
+                                                                        value={currentVal}
+                                                                        onChange={(e) => handleAttendanceChange(student, m.id, e.target.value)}
+                                                                        class={`font-bold text-xs rounded-lg px-2 py-1.5 border cursor-pointer focus:outline-none w-20 text-center ${bgStyle}`}
+                                                                    >
+                                                                        <option value="P">P (Present)</option>
+                                                                        <option value="A">A (Absent)</option>
+                                                                        <option value="L">L (Late)</option>
+                                                                        <option value="S">S (Sick)</option>
+                                                                    </select>
+                                                                </td>
+                                                            );
+                                                        })}
+
+                                                        {/* Calculated Attendance Rate */}
+                                                        <td class="p-3 text-center font-black bg-yellow-50/50 border-l border-slate-200">
+                                                            <div class="flex items-center justify-center gap-2">
+                                                                <span class={`text-sm ${stats.percent >= 80 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                                                    {stats.percent}%
+                                                                </span>
+                                                                <span class="text-[10px] text-slate-400 font-normal">
+                                                                    ({stats.presentCount}/{stats.total})
+                                                                </span>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* =========================================================
+                            TAB 2: LEARNING SESSION, TOPIC & LO
+                           ========================================================= */}
+                        {}
+                        {activeTab === "sessions" && (
+                            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                                <div class="bg-blue-50/60 p-4 border-b border-slate-200 flex justify-between items-center">
+                                    <div>
+                                        <h2 class="text-lg font-bold text-klis-blue flex items-center gap-2">
+                                            <i class="fa-solid fa-book-open text-klis-gold"></i>
+                                            Learning Sessions & Objectives - {activeSubjectObj?.name}
+                                        </h2>
+                                        <p class="text-xs text-slate-500 mt-0.5">
+                                            Define the Topic and Learning Objectives (LO) for each meeting session.
+                                        </p>
+                                    </div>
+                                    <button 
+                                        onClick={handleAddMeeting}
+                                        class="bg-klis-blue hover:bg-blue-800 text-white font-bold text-xs px-3.5 py-2 rounded-lg shadow transition flex items-center gap-1.5"
+                                    >
+                                        <i class="fa-solid fa-plus text-klis-yellow"></i>
+                                        Add New Session
+                                    </button>
+                                </div>
+
+                                <div class="p-6 space-y-4">
+                                    {(subjectMeetings[selectedSubject] || []).map((m, idx) => (
+                                        <div key={m.id} class="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col md:flex-row gap-4 items-start md:items-center">
+                                            <div class="bg-klis-blue text-white rounded-lg p-3 text-center min-w-[100px] border border-klis-gold flex-shrink-0">
+                                                <span class="text-xs font-semibold text-klis-yellow block">Session #{idx + 1}</span>
+                                                <span class="font-bold text-sm">{m.name}</span>
+                                                <input 
+                                                    type="date"
+                                                    value={m.date}
+                                                    onChange={(e) => handleUpdateMeeting(m.id, 'date', e.target.value)}
+                                                    class="text-[10px] bg-white text-slate-800 rounded mt-1 px-1 py-0.5 w-full text-center"
+                                                />
+                                            </div>
+
+                                            <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+                                                <div>
+                                                    <label class="block text-xs font-bold text-slate-600 mb-1">
+                                                        <i class="fa-solid fa-heading text-klis-gold mr-1"></i> Session Topic:
+                                                    </label>
+                                                    <input 
+                                                        type="text"
+                                                        value={m.topic}
+                                                        onChange={(e) => handleUpdateMeeting(m.id, 'topic', e.target.value)}
+                                                        class="w-full text-xs font-semibold p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-klis-blue focus:outline-none"
+                                                        placeholder="Enter lesson topic..."
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label class="block text-xs font-bold text-slate-600 mb-1">
+                                                        <i class="fa-solid fa-bullseye text-klis-gold mr-1"></i> Learning Objectives (LO):
+                                                    </label>
+                                                    <input 
+                                                        type="text"
+                                                        value={m.lo}
+                                                        onChange={(e) => handleUpdateMeeting(m.id, 'lo', e.target.value)}
+                                                        class="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-klis-blue focus:outline-none"
+                                                        placeholder="Enter learning objective..."
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* =========================================================
+                            TAB 3: DAILY ASSESSMENT
+                           ========================================================= */}
+                        {}
+                        {activeTab === "assessment" && (
+                            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                                <div class="bg-blue-50/60 p-4 border-b border-slate-200">
+                                    <h2 class="text-lg font-bold text-klis-blue flex items-center gap-2">
+                                        <i class="fa-solid fa-calculator text-klis-gold"></i>
+                                        Daily Assessment Matrix - {activeSubjectObj?.name}
+                                    </h2>
+                                    <p class="text-xs text-slate-500 mt-0.5">
+                                        Includes Quiz, Formative Assessment, Oral Test, Written Test, and Practical Test. Averages are automatically calculated.
+                                    </p>
+                                </div>
+
+                                <div class="overflow-x-auto custom-scrollbar">
+                                    <table class="w-full text-left text-xs border-collapse">
+                                        <thead>
+                                            <tr class="bg-slate-100 text-slate-700 border-b border-slate-200">
+                                                <th class="p-3 font-bold uppercase w-12 text-center sticky left-0 bg-slate-100 z-10 border-r border-slate-200">#</th>
+                                                <th class="p-3 font-bold uppercase min-w-[220px] sticky left-12 bg-slate-100 z-10 border-r border-slate-200">Student Name</th>
+                                                
+                                                <th class="p-3 font-bold uppercase text-center min-w-[100px] border-r border-slate-200">
+                                                    Quiz <span class="block text-[10px] text-slate-400 font-normal">(0-100)</span>
+                                                </th>
+                                                <th class="p-3 font-bold uppercase text-center min-w-[120px] border-r border-slate-200">
+                                                    Formative <span class="block text-[10px] text-slate-400 font-normal">(0-100)</span>
+                                                </th>
+                                                <th class="p-3 font-bold uppercase text-center min-w-[100px] border-r border-slate-200">
+                                                    Oral Test <span class="block text-[10px] text-slate-400 font-normal">(0-100)</span>
+                                                </th>
+                                                <th class="p-3 font-bold uppercase text-center min-w-[100px] border-r border-slate-200">
+                                                    Written <span class="block text-[10px] text-slate-400 font-normal">(0-100)</span>
+                                                </th>
+                                                <th class="p-3 font-bold uppercase text-center min-w-[100px] border-r border-slate-200">
+                                                    Practical <span class="block text-[10px] text-slate-400 font-normal">(0-100)</span>
+                                                </th>
+                                                
+                                                <th class="p-3 font-bold uppercase text-center min-w-[120px] bg-yellow-50 text-klis-gold border-l border-slate-300">
+                                                    Average Score
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-slate-200">
+                                            {currentStudents.map((student, idx) => {
+                                                const scores = assessmentData[selectedSubject]?.[student] || { quiz: 0, formative: 0, oral: 0, written: 0, practical: 0 };
+                                                const avg = calculateAverageScore(student, selectedSubject);
+
+                                                return (
+                                                    <tr key={student} class="hover:bg-blue-50/30 transition">
+                                                        <td class="p-3 text-center text-slate-500 font-medium sticky left-0 bg-white z-10 border-r border-slate-200">
+                                                            {idx + 1}
+                                                        </td>
+                                                        <td class="p-3 font-bold text-slate-800 sticky left-12 bg-white z-10 border-r border-slate-200 whitespace-nowrap">
+                                                            {student}
+                                                        </td>
+
+                                                        {/* Quiz */}
+                                                        <td class="p-2 border-r border-slate-200 text-center">
+                                                            <input 
+                                                                type="number"
+                                                                min="0"
+                                                                max="100"
+                                                                value={scores.quiz}
+                                                                onChange={(e) => handleAssessmentChange(student, 'quiz', e.target.value)}
+                                                                class="w-16 text-center font-semibold text-xs border border-slate-300 rounded p-1 focus:ring-2 focus:ring-klis-blue focus:outline-none"
+                                                            />
+                                                        </td>
+
+                                                        {/* Formative */}
+                                                        <td class="p-2 border-r border-slate-200 text-center">
+                                                            <input 
+                                                                type="number"
+                                                                min="0"
+                                                                max="100"
+                                                                value={scores.formative}
+                                                                onChange={(e) => handleAssessmentChange(student, 'formative', e.target.value)}
+                                                                class="w-16 text-center font-semibold text-xs border border-slate-300 rounded p-1 focus:ring-2 focus:ring-klis-blue focus:outline-none"
+                                                            />
+                                                        </td>
+
+                                                        {/* Oral Test */}
+                                                        <td class="p-2 border-r border-slate-200 text-center">
+                                                            <input 
+                                                                type="number"
+                                                                min="0"
+                                                                max="100"
+                                                                value={scores.oral}
+                                                                onChange={(e) => handleAssessmentChange(student, 'oral', e.target.value)}
+                                                                class="w-16 text-center font-semibold text-xs border border-slate-300 rounded p-1 focus:ring-2 focus:ring-klis-blue focus:outline-none"
+                                                            />
+                                                        </td>
+
+                                                        {/* Written */}
+                                                        <td class="p-2 border-r border-slate-200 text-center">
+                                                            <input 
+                                                                type="number"
+                                                                min="0"
+                                                                max="100"
+                                                                value={scores.written}
+                                                                onChange={(e) => handleAssessmentChange(student, 'written', e.target.value)}
+                                                                class="w-16 text-center font-semibold text-xs border border-slate-300 rounded p-1 focus:ring-2 focus:ring-klis-blue focus:outline-none"
+                                                            />
+                                                        </td>
+
+                                                        {/* Practical */}
+                                                        <td class="p-2 border-r border-slate-200 text-center">
+                                                            <input 
+                                                                type="number"
+                                                                min="0"
+                                                                max="100"
+                                                                value={scores.practical}
+                                                                onChange={(e) => handleAssessmentChange(student, 'practical', e.target.value)}
+                                                                class="w-16 text-center font-semibold text-xs border border-slate-300 rounded p-1 focus:ring-2 focus:ring-klis-blue focus:outline-none"
+                                                            />
+                                                        </td>
+
+                                                        {/* Average Score */}
+                                                        <td class="p-3 text-center bg-yellow-50/50 border-l border-slate-200 font-extrabold text-sm">
+                                                            <span class={`px-2.5 py-1 rounded-full ${
+                                                                avg >= 85 ? 'bg-emerald-100 text-emerald-800' :
+                                                                avg >= 75 ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800'
+                                                            }`}>
+                                                                {avg}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* =========================================================
+                            TAB 4: INDIVIDUAL STUDENT REPORT (LAPORAN SETIAP ANAK)
+                           ========================================================= */}
+                        {}
+                        {activeTab === "report" && (
+                            <div class="space-y-6">
+                                {/* Student Selector Header (Hidden when Printing) */}
+                                <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4 no-print">
+                                    <div class="flex items-center gap-3 w-full sm:w-auto">
+                                        <div class="w-10 h-10 rounded-xl bg-klis-gold/20 text-klis-gold flex items-center justify-center font-bold">
+                                            <i class="fa-solid fa-user-graduate text-lg"></i>
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-500 uppercase">Select Student ({currentGrade}):</label>
+                                            <select 
+                                                value={selectedStudentForReport}
+                                                onChange={(e) => setSelectedStudentForReport(e.target.value)}
+                                                class="font-bold text-sm bg-slate-50 border border-slate-300 rounded-lg p-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-klis-blue mt-0.5 min-w-[260px]"
+                                            >
+                                                {currentStudents.map(st => (
+                                                    <option key={st} value={st}>{st}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-center gap-2 w-full sm:w-auto">
+                                        <button 
+                                            onClick={() => window.print()}
+                                            class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-5 py-3 rounded-xl shadow flex items-center justify-center gap-2 transition w-full sm:w-auto"
+                                        >
+                                            <i class="fa-solid fa-file-pdf text-sm"></i>
+                                            Print / Save as PDF
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Report Card Document Box */}
+                                <div class="report-card-container bg-white rounded-2xl shadow-lg border-2 border-klis-blue p-6 sm:p-10 max-w-4xl mx-auto space-y-6 relative overflow-hidden">
+                                    {/* Yellow Accent Corner Bar */}
+                                    <div class="absolute top-0 right-0 w-32 h-32 bg-klis-yellow/20 rounded-bl-full pointer-events-none"></div>
+
+                                    {/* Report Header */}
+                                    <div class="border-b-2 border-klis-blue pb-6 flex items-start justify-between gap-4">
+                                        <div class="flex items-center space-x-4">
+                                            <div class="w-16 h-16 bg-klis-blue border-2 border-klis-gold rounded-xl flex flex-col items-center justify-center p-1 text-white text-center shadow-md">
+                                                <i class="fa-solid fa-graduation-cap text-klis-yellow text-xl mb-0.5"></i>
+                                                <span class="font-extrabold text-[10px] text-yellow-400">KLIS</span>
+                                            </div>
+                                            <div>
+                                                <h2 class="text-xl font-black text-klis-blue uppercase tracking-tight">
+                                                    Knowledge Link Intercultural School
+                                                </h2>
+                                                <p class="text-xs font-bold text-klis-gold uppercase tracking-wider">Primary Division &bull; Comprehensive Student Report</p>
+                                                <p class="text-xs text-slate-500">Academic Year 2026/2027</p>
+                                            </div>
+                                        </div>
+
+                                        <div class="text-right text-xs space-y-1">
+                                            <p class="bg-blue-50 border border-blue-200 text-klis-blue px-3 py-1 rounded-md font-bold">
+                                                Grade: <span class="text-slate-900">{currentGrade}</span>
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Student Info Details */}
+                                    <div class="bg-slate-50 rounded-xl p-4 border border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div>
+                                            <p class="text-[11px] font-bold text-slate-400 uppercase">Student Name</p>
+                                            <p class="text-lg font-black text-slate-900">{selectedStudentForReport}</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-[11px] font-bold text-slate-400 uppercase">Subject Teacher</p>
+                                            <p class="text-base font-bold text-klis-blue">Mr. Deni Ramli Fauzi, S.H.I</p>
+                                        </div>
+                                    </div>
+
+                                    {/* 2 Subjects Breakdown Table with Topics Learned */}
+                                    <div>
+                                        <h3 class="text-sm font-extrabold text-klis-blue uppercase tracking-wider mb-3 flex items-center gap-2">
+                                            <i class="fa-solid fa-book text-klis-gold"></i>
+                                            Subject Performance & Topics Covered
+                                        </h3>
+
+                                        {(() => {
+                                            const sub1 = currentGrade === "G3" ? SUBJECTS[0] : SUBJECTS[2]; // Islamic Studies
+                                            const sub2 = currentGrade === "G3" ? SUBJECTS[1] : SUBJECTS[3]; // Arabic Language
+
+                                            const att1 = calculateAttendanceStats(selectedStudentForReport, sub1.id);
+                                            const att2 = calculateAttendanceStats(selectedStudentForReport, sub2.id);
+
+                                            const avg1 = calculateAverageScore(selectedStudentForReport, sub1.id);
+                                            const avg2 = calculateAverageScore(selectedStudentForReport, sub2.id);
+
+                                            const scores1 = assessmentData[sub1.id]?.[selectedStudentForReport] || {};
+                                            const scores2 = assessmentData[sub2.id]?.[selectedStudentForReport] || {};
+
+                                            const meetingsSub1 = subjectMeetings[sub1.id] || [];
+                                            const meetingsSub2 = subjectMeetings[sub2.id] || [];
+
+                                            return (
+                                                <div class="space-y-6">
+                                                    {/* Subject 1 Card */}
+                                                    <div class="border border-slate-200 rounded-xl p-4 bg-white shadow-sm space-y-4">
+                                                        <div class="flex justify-between items-center border-b border-slate-100 pb-2 flex-wrap gap-2">
+                                                            <span class="font-bold text-sm text-klis-blue">{sub1.name}</span>
+                                                            <div class="flex gap-2 text-xs">
+                                                                <span class="bg-blue-50 text-klis-blue border border-blue-200 px-2.5 py-0.5 rounded-full font-bold">
+                                                                    Attendance: {att1.percent}% ({att1.presentCount}/{att1.total} sessions)
+                                                                </span>
+                                                                <span class="bg-yellow-100 text-klis-gold border border-yellow-300 px-2.5 py-0.5 rounded-full font-black">
+                                                                    Average Score: {avg1}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Score Chips */}
+                                                        <div>
+                                                            <p class="text-[11px] font-bold text-slate-500 uppercase mb-1.5">Assessment Summary:</p>
+                                                            <div class="grid grid-cols-5 gap-2 text-center text-xs">
+                                                                <div class="bg-slate-50 p-2 rounded-lg border border-slate-200">
+                                                                    <span class="block text-[10px] text-slate-400 font-bold uppercase">Quiz</span>
+                                                                    <span class="font-bold text-slate-800">{scores1.quiz ?? '-'}</span>
+                                                                </div>
+                                                                <div class="bg-slate-50 p-2 rounded-lg border border-slate-200">
+                                                                    <span class="block text-[10px] text-slate-400 font-bold uppercase">Formative</span>
+                                                                    <span class="font-bold text-slate-800">{scores1.formative ?? '-'}</span>
+                                                                </div>
+                                                                <div class="bg-slate-50 p-2 rounded-lg border border-slate-200">
+                                                                    <span class="block text-[10px] text-slate-400 font-bold uppercase">Oral</span>
+                                                                    <span class="font-bold text-slate-800">{scores1.oral ?? '-'}</span>
+                                                                </div>
+                                                                <div class="bg-slate-50 p-2 rounded-lg border border-slate-200">
+                                                                    <span class="block text-[10px] text-slate-400 font-bold uppercase">Written</span>
+                                                                    <span class="font-bold text-slate-800">{scores1.written ?? '-'}</span>
+                                                                </div>
+                                                                <div class="bg-slate-50 p-2 rounded-lg border border-slate-200">
+                                                                    <span class="block text-[10px] text-slate-400 font-bold uppercase">Practical</span>
+                                                                    <span class="font-bold text-slate-800">{scores1.practical ?? '-'}</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Topics Learned & Mastery Scores */}
+                                                        <div>
+                                                            <p class="text-[11px] font-bold text-slate-500 uppercase mb-1.5 flex items-center gap-1">
+                                                                <i class="fa-solid fa-list-check text-klis-gold"></i> Topics Covered & Topic Scores:
+                                                            </p>
+                                                            <div class="border border-slate-200 rounded-lg overflow-hidden text-xs">
+                                                                <table class="w-full text-left border-collapse">
+                                                                    <thead class="bg-slate-100 text-slate-600 font-bold border-b border-slate-200">
+                                                                        <tr>
+                                                                            <th class="p-2 w-24">Session</th>
+                                                                            <th class="p-2">Topic Learned</th>
+                                                                            <th class="p-2">Learning Objective (LO)</th>
+                                                                            <th class="p-2 w-20 text-center">Score</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody class="divide-y divide-slate-200 bg-white">
+                                                                        {meetingsSub1.map(m => {
+                                                                            const tScore = topicScores[sub1.id]?.[selectedStudentForReport]?.[m.id] ?? 85;
+                                                                            return (
+                                                                                <tr key={m.id} class="hover:bg-slate-50">
+                                                                                    <td class="p-2 font-semibold text-klis-blue">{m.name}</td>
+                                                                                    <td class="p-2 font-medium text-slate-800">{m.topic}</td>
+                                                                                    <td class="p-2 text-slate-500">{m.lo}</td>
+                                                                                    <td class="p-2 text-center font-bold">
+                                                                                        <input 
+                                                                                            type="number"
+                                                                                            min="0"
+                                                                                            max="100"
+                                                                                            value={tScore}
+                                                                                            onChange={(e) => handleTopicScoreChange(sub1.id, selectedStudentForReport, m.id, e.target.value)}
+                                                                                            class="w-14 text-center p-1 bg-blue-50 border border-blue-200 rounded font-bold text-klis-blue focus:outline-none no-print"
+                                                                                        />
+                                                                                        <span class="print-only text-slate-900 font-bold">{tScore}</span>
+                                                                                    </td>
+                                                                                </tr>
+                                                                            );
+                                                                        })}
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Subject 2 Card */}
+                                                    <div class="border border-slate-200 rounded-xl p-4 bg-white shadow-sm space-y-4">
+                                                        <div class="flex justify-between items-center border-b border-slate-100 pb-2 flex-wrap gap-2">
+                                                            <span class="font-bold text-sm text-klis-blue">{sub2.name}</span>
+                                                            <div class="flex gap-2 text-xs">
+                                                                <span class="bg-blue-50 text-klis-blue border border-blue-200 px-2.5 py-0.5 rounded-full font-bold">
+                                                                    Attendance: {att2.percent}% ({att2.presentCount}/{att2.total} sessions)
+                                                                </span>
+                                                                <span class="bg-yellow-100 text-klis-gold border border-yellow-300 px-2.5 py-0.5 rounded-full font-black">
+                                                                    Average Score: {avg2}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Score Chips */}
+                                                        <div>
+                                                            <p class="text-[11px] font-bold text-slate-500 uppercase mb-1.5">Assessment Summary:</p>
+                                                            <div class="grid grid-cols-5 gap-2 text-center text-xs">
+                                                                <div class="bg-slate-50 p-2 rounded-lg border border-slate-200">
+                                                                    <span class="block text-[10px] text-slate-400 font-bold uppercase">Quiz</span>
+                                                                    <span class="font-bold text-slate-800">{scores2.quiz ?? '-'}</span>
+                                                                </div>
+                                                                <div class="bg-slate-50 p-2 rounded-lg border border-slate-200">
+                                                                    <span class="block text-[10px] text-slate-400 font-bold uppercase">Formative</span>
+                                                                    <span class="font-bold text-slate-800">{scores2.formative ?? '-'}</span>
+                                                                </div>
+                                                                <div class="bg-slate-50 p-2 rounded-lg border border-slate-200">
+                                                                    <span class="block text-[10px] text-slate-400 font-bold uppercase">Oral</span>
+                                                                    <span class="font-bold text-slate-800">{scores2.oral ?? '-'}</span>
+                                                                </div>
+                                                                <div class="bg-slate-50 p-2 rounded-lg border border-slate-200">
+                                                                    <span class="block text-[10px] text-slate-400 font-bold uppercase">Written</span>
+                                                                    <span class="font-bold text-slate-800">{scores2.written ?? '-'}</span>
+                                                                </div>
+                                                                <div class="bg-slate-50 p-2 rounded-lg border border-slate-200">
+                                                                    <span class="block text-[10px] text-slate-400 font-bold uppercase">Practical</span>
+                                                                    <span class="font-bold text-slate-800">{scores2.practical ?? '-'}</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Topics Learned & Mastery Scores */}
+                                                        <div>
+                                                            <p class="text-[11px] font-bold text-slate-500 uppercase mb-1.5 flex items-center gap-1">
+                                                                <i class="fa-solid fa-list-check text-klis-gold"></i> Topics Covered & Topic Scores:
+                                                            </p>
+                                                            <div class="border border-slate-200 rounded-lg overflow-hidden text-xs">
+                                                                <table class="w-full text-left border-collapse">
+                                                                    <thead class="bg-slate-100 text-slate-600 font-bold border-b border-slate-200">
+                                                                        <tr>
+                                                                            <th class="p-2 w-24">Session</th>
+                                                                            <th class="p-2">Topic Learned</th>
+                                                                            <th class="p-2">Learning Objective (LO)</th>
+                                                                            <th class="p-2 w-20 text-center">Score</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody class="divide-y divide-slate-200 bg-white">
+                                                                        {meetingsSub2.map(m => {
+                                                                            const tScore = topicScores[sub2.id]?.[selectedStudentForReport]?.[m.id] ?? 88;
+                                                                            return (
+                                                                                <tr key={m.id} class="hover:bg-slate-50">
+                                                                                    <td class="p-2 font-semibold text-klis-blue">{m.name}</td>
+                                                                                    <td class="p-2 font-medium text-slate-800">{m.topic}</td>
+                                                                                    <td class="p-2 text-slate-500">{m.lo}</td>
+                                                                                    <td class="p-2 text-center font-bold">
+                                                                                        <input 
+                                                                                            type="number"
+                                                                                            min="0"
+                                                                                            max="100"
+                                                                                            value={tScore}
+                                                                                            onChange={(e) => handleTopicScoreChange(sub2.id, selectedStudentForReport, m.id, e.target.value)}
+                                                                                            class="w-14 text-center p-1 bg-blue-50 border border-blue-200 rounded font-bold text-klis-blue focus:outline-none no-print"
+                                                                                        />
+                                                                                        <span class="print-only text-slate-900 font-bold">{tScore}</span>
+                                                                                    </td>
+                                                                                </tr>
+                                                                            );
+                                                                        })}
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()}
+                                    </div>
+
+                                    {/* Observation & Attitude Section */}
+                                    {(() => {
+                                        const attObs = attitudeData[selectedStudentForReport] || {
+                                            adab: "Exemplary",
+                                            participation: "Active & Enthusiastic",
+                                            discipline: "Consistently On Time",
+                                            collaboration: "Helpful & Cooperative",
+                                            attitudeNotes: "Demonstrates excellent manners, shows respect to teachers and classmates, and consistently demonstrates positive effort."
+                                        };
+
+                                        return (
+                                            <div class="border border-slate-200 rounded-xl p-4 bg-white shadow-sm space-y-3">
+                                                <h3 class="text-sm font-extrabold text-klis-blue uppercase tracking-wider flex items-center gap-2">
+                                                    <i class="fa-solid fa-heart-pulse text-klis-gold"></i>
+                                                    Behavioral Observation & Attitude
+                                                </h3>
+
+                                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                                                    <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200 flex items-center justify-between">
+                                                        <span class="font-bold text-slate-600">Adab & Respect:</span>
+                                                        <select
+                                                            value={attObs.adab}
+                                                            onChange={(e) => handleAttitudeChange(selectedStudentForReport, 'adab', e.target.value)}
+                                                            class="bg-white border border-slate-300 font-bold rounded px-2 py-1 text-slate-800 no-print focus:outline-none focus:ring-1 focus:ring-klis-blue"
+                                                        >
+                                                            <option value="Exemplary">Exemplary</option>
+                                                            <option value="Good / Commendable">Good / Commendable</option>
+                                                            <option value="Satisfactory">Satisfactory</option>
+                                                            <option value="Needs Improvement">Needs Improvement</option>
+                                                        </select>
+                                                        <span class="print-only font-bold text-klis-blue">{attObs.adab}</span>
+                                                    </div>
+
+                                                    <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200 flex items-center justify-between">
+                                                        <span class="font-bold text-slate-600">Class Participation:</span>
+                                                        <select
+                                                            value={attObs.participation}
+                                                            onChange={(e) => handleAttitudeChange(selectedStudentForReport, 'participation', e.target.value)}
+                                                            class="bg-white border border-slate-300 font-bold rounded px-2 py-1 text-slate-800 no-print focus:outline-none focus:ring-1 focus:ring-klis-blue"
+                                                        >
+                                                            <option value="Active & Enthusiastic">Active & Enthusiastic</option>
+                                                            <option value="Consistently Engaged">Consistently Engaged</option>
+                                                            <option value="Moderate Participation">Moderate Participation</option>
+                                                            <option value="Encouragement Needed">Encouragement Needed</option>
+                                                        </select>
+                                                        <span class="print-only font-bold text-klis-blue">{attObs.participation}</span>
+                                                    </div>
+
+                                                    <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200 flex items-center justify-between">
+                                                        <span class="font-bold text-slate-600">Discipline & Punctuality:</span>
+                                                        <select
+                                                            value={attObs.discipline}
+                                                            onChange={(e) => handleAttitudeChange(selectedStudentForReport, 'discipline', e.target.value)}
+                                                            class="bg-white border border-slate-300 font-bold rounded px-2 py-1 text-slate-800 no-print focus:outline-none focus:ring-1 focus:ring-klis-blue"
+                                                        >
+                                                            <option value="Consistently On Time">Consistently On Time</option>
+                                                            <option value="Generally Disciplined">Generally Disciplined</option>
+                                                            <option value="Requires Guidance">Requires Guidance</option>
+                                                        </select>
+                                                        <span class="print-only font-bold text-klis-blue">{attObs.discipline}</span>
+                                                    </div>
+
+                                                    <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200 flex items-center justify-between">
+                                                        <span class="font-bold text-slate-600">Peer Collaboration:</span>
+                                                        <select
+                                                            value={attObs.collaboration}
+                                                            onChange={(e) => handleAttitudeChange(selectedStudentForReport, 'collaboration', e.target.value)}
+                                                            class="bg-white border border-slate-300 font-bold rounded px-2 py-1 text-slate-800 no-print focus:outline-none focus:ring-1 focus:ring-klis-blue"
+                                                        >
+                                                            <option value="Helpful & Cooperative">Helpful & Cooperative</option>
+                                                            <option value="Good Team Player">Good Team Player</option>
+                                                            <option value="Developing Skills">Developing Skills</option>
+                                                        </select>
+                                                        <span class="print-only font-bold text-klis-blue">{attObs.collaboration}</span>
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <p class="text-[11px] font-bold text-slate-500 uppercase mb-1">Observation Summary:</p>
+                                                    <textarea
+                                                        value={attObs.attitudeNotes}
+                                                        onChange={(e) => handleAttitudeChange(selectedStudentForReport, 'attitudeNotes', e.target.value)}
+                                                        rows="2"
+                                                        class="w-full text-xs text-slate-700 bg-slate-50 border border-slate-200 rounded-lg p-2.5 focus:ring-2 focus:ring-klis-blue focus:outline-none no-print"
+                                                        placeholder="Add specific attitude observations..."
+                                                    ></textarea>
+                                                    <p class="print-only text-xs text-slate-700 bg-slate-50 p-2.5 rounded border border-slate-200">
+                                                        {attObs.attitudeNotes}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
+
+                                    {/* Teacher Comment Section */}
+                                    <div>
+                                        <h3 class="text-sm font-extrabold text-klis-blue uppercase tracking-wider mb-2 flex items-center gap-2">
+                                            <i class="fa-solid fa-comment-dots text-klis-gold"></i>
+                                            Teacher's Comments
+                                        </h3>
+                                        <textarea
+                                            value={studentComments[selectedStudentForReport] || `${selectedStudentForReport} shows steady progress in learning activities, demonstrates respect for peers, and consistently meets class expectations.`}
+                                            onChange={(e) => setStudentComments(prev => ({
+                                                ...prev,
+                                                [selectedStudentForReport]: e.target.value
+                                            }))}
+                                            rows="3"
+                                            class="w-full text-xs text-slate-700 bg-blue-50/40 border border-blue-200 rounded-xl p-3 focus:ring-2 focus:ring-klis-blue focus:outline-none no-print"
+                                            placeholder="Write customized teacher commentary..."
+                                        ></textarea>
+                                        <p class="print-only text-xs text-slate-800 bg-blue-50/30 p-3 rounded-xl border border-blue-100">
+                                            {studentComments[selectedStudentForReport] || `${selectedStudentForReport} shows steady progress in learning activities, demonstrates respect for peers, and consistently meets class expectations.`}
+                                        </p>
+                                    </div>
+
+                                    {/* Signatures Section */}
+                                    <div class="pt-8 border-t border-slate-200 grid grid-cols-2 gap-8 text-center text-xs">
+                                        <div>
+                                            <p class="text-slate-400 mb-12">Acknowledged by,</p>
+                                            <p class="font-bold text-slate-900 border-b border-slate-300 pb-1 inline-block px-4">
+                                                Mr. Deni Ramli Fauzi, S.H.I
+                                            </p>
+                                            <p class="text-[11px] font-semibold text-slate-500 mt-1">Subject Teacher</p>
+                                        </div>
+
+                                        <div>
+                                            <p class="text-slate-400 mb-12">Approved by,</p>
+                                            <p class="font-bold text-slate-900 border-b border-slate-300 pb-1 inline-block px-4">
+                                                Ms. Nuraeni, S.K.H.
+                                            </p>
+                                            <p class="text-[11px] font-semibold text-slate-500 mt-1">Principal</p>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        )}
+
+                    </main>
+
+                    {/* Footer */}
+                    <footer class="bg-white border-t border-slate-200 py-4 mt-auto no-print text-center text-xs text-slate-500">
+                        <p>&copy; 2026 Knowledge Link Intercultural School Primary. Built for Mr. Deni Ramli Fauzi, S.H.I.</p>
+                    </footer>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
